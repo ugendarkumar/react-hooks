@@ -1,29 +1,44 @@
-import React, { useState,useEffect,useCallback } from 'react';
+import React, { useState,useEffect,useCallback,useReducer } from 'react';
 
 import IngredientForm from './ItemForm';
 import ItemList from './ItemList';
 import Search from './Search';
 import ErrorModal from '../UI/ErrorModal';
 
-function Items() {
 
-  const [userBook,setUserBook] = useState([]);
+const itemReducer = (currentBook,action) => {
+  console.log(action)
+  switch (action.type) {
+    case 'SET':
+      return action.items;
+    case 'ADD':
+      return [...currentBook, action.item];
+    case 'DELETE':
+      return currentBook.filter(ing => ing.id !== action.id);
+    default:
+} 
+}
+
+function Items() {
+   
+  const [userBook,dispatch] = useReducer(itemReducer,[]);
+ // const [userBook,setUserBook] = useState([]);
   const [isLoading,setIsLoading] = useState(false);
   const [error,setError] = useState(false);
   // note data is fetched twice we can remove the below useEffect. It's already called in search
   // when useEffect there is invoked for the first time.
   
-  useEffect(() => {
-    fetch("https://react-hooks-1b5f2.firebaseio.com/ingredients.json")
-    .then(response => response.json())
-    .then(responseData => {
-      let bookArray = [];
-      for(let x in responseData){
-        bookArray.push({id:x,title:responseData[x].title,amount:responseData[x].amount});
-      }
-      setUserBook(bookArray);
-    })
-  },[])
+  // useEffect(() => {
+  //   fetch("https://react-hooks-1b5f2.firebaseio.com/ingredients.json")
+  //   .then(response => response.json())
+  //   .then(responseData => {
+  //     let bookArray = [];
+  //     for(let x in responseData){
+  //       bookArray.push({id:x,title:responseData[x].title,amount:responseData[x].amount});
+  //     }
+  //     dispatch({action:"SET",items:bookArray});
+  //   })
+  // },[])
 
   useEffect(() => {
     console.log("Rendering Books",userBook);
@@ -41,10 +56,11 @@ function Items() {
       })
       .then((responseData) => {
         setIsLoading(false)
-        setUserBook((prevIngredient) => [
-          ...prevIngredient,
-          { id: responseData.name, ...book },
-        ]);
+        // setUserBook((prevIngredient) => [
+        //   ...prevIngredient,
+        //   { id: responseData.name, ...book },
+        // ]);
+        dispatch({action:'ADD',item: { id: responseData.name, ...book }})
       }).catch(err =>{
         setError('Something went wrong');
         setIsLoading(false);
@@ -56,7 +72,8 @@ function Items() {
     fetch(`https://react-hooks-1b5f2.firebaseio.com/ingredients/${id}.json`,{method:"DELETE"})
     .then(response => {
       setIsLoading(false)
-      setUserBook(prevBook => prevBook.filter(x => x.id !== id));
+      // setUserBook(prevBook => prevBook.filter(x => x.id !== id));
+      dispatch({action:"DELETE",id:id})
     }).catch(err =>{
       setError('Something went wrong');
       setIsLoading(false);
@@ -65,7 +82,7 @@ function Items() {
   }
 
   const filteredBooks = useCallback(books => {
-    setUserBook(books);
+    dispatch({action:'SET',items:books});
   },[])
 
   const clearError = () => {
